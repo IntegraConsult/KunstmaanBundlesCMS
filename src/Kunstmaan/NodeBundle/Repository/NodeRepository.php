@@ -323,13 +323,12 @@ SQL;
             ->where('n.deleted = :deletedFalse')
             ->addGroupBy('n.id');
 
+        //in postgres one needs to group all columns of a select result
         if ($databasePlatformName=='postgresql'){
-            //@todo this needst to be tested still
             $qb->addGroupBy('t.url')
                 ->addGroupby('t.id')
                 ->addGroupby('v.weight')
                 ->addGroupBy('v.title');
-
         }
 
         $qb->addOrderBy('t.weight', 'ASC')
@@ -360,7 +359,14 @@ SQL;
             $stmt->bindValue(':right', $rootNode->getRight());
         }
         $stmt->execute();
-
+        if ($databasePlatformName=='postgresql'){
+            $results=$stmt->fetchAll();
+            $uniqueResults=[];
+            foreach ($results as $result){
+                $uniqueResults[$result['id']]=$result;
+            }
+           return $uniqueResults;
+        }
         return $stmt->fetchAll();
     }
 
@@ -507,7 +513,7 @@ SQL;
             ->setParameter('lang', $lang)
             ->addOrderBy('t.weight', 'ASC')
             ->addOrderBy('t.title', 'ASC');
-        //@todo original 5.7 code states $qb->andWhere('t.online = true');=> strange!
+
         if (!$includeOffline) {
             $qb->andWhere('t.online = :onlineTrue')
                 ->setParamater('onlineTrue',true);
