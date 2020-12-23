@@ -50,8 +50,8 @@ class NodeTranslationRepository extends EntityRepository
         $qb = $this->createQueryBuilder('nt')
             ->select('nt')
             ->innerJoin('nt.node', 'n', 'WITH', 'nt.node = n.id')
-            ->where('n.deleted != :deletedTrue')
-            ->setParameter('deletedTrue',true)
+            ->where('n.deleted = :deletedFalse')
+            ->setParameter('deletedFalse',false)
             ->andWhere('nt.online = :onlineTrue')
             ->setParameter('onlineTrue',true)
             ->andWhere('nt.lang = :lang')
@@ -315,7 +315,7 @@ class NodeTranslationRepository extends EntityRepository
                 'WITH',
                 'b.publicNodeVersion = v.id'
             )
-            //@todo check if you can really order by boolean in postgressql
+            //@todo check if you can really order by boolean in postgreSql
             ->addOrderBy('b.online', 'DESC')
             ->setFirstResult(0)
             ->setMaxResults(1);
@@ -542,6 +542,7 @@ class NodeTranslationRepository extends EntityRepository
 
         $query->setParameter('lang', $locale);
         $query->setParameter('url', $urlSlug);
+        $query->setParameter('deletedFalse', false);
 
         return $query->getOneOrNullResult();
     }

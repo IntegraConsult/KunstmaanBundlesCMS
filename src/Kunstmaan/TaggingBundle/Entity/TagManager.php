@@ -12,6 +12,9 @@ class TagManager extends BaseTagManager
 {
     const TAGGING_HYDRATOR = 'taggingHydrator';
 
+    /**
+     * @param BaseTaggable $resource
+     */
     public function loadTagging(BaseTaggable $resource)
     {
         if ($resource instanceof LazyLoadingTaggableInterface) {
@@ -25,6 +28,9 @@ class TagManager extends BaseTagManager
         parent::loadTagging($resource);
     }
 
+    /**
+     * @param BaseTaggable $resource
+     */
     public function saveTagging(BaseTaggable $resource)
     {
         $tags = clone $resource->getTags();
@@ -104,6 +110,7 @@ class TagManager extends BaseTagManager
     }
 
     /**
+     * @param Taggable $item
      * @param $class
      * @param $locale
      * @param int $nbOfItems
@@ -152,8 +159,8 @@ EOD;
                     INNER JOIN kuma_node_versions as nodeversion
                     ON nodetranslation.publicNodeVersion = nodeversion.id
                     AND nodeversion.refEntityname = '{$escapedClass}'
-                    AND node.deleted = 0
-                    AND nodetranslation.online = 1
+                    AND node.deleted = :deleted
+                    AND nodetranslation.online = :online
                 )
 EOD;
         }
@@ -167,7 +174,13 @@ EOD;
                 number DESC
             LIMIT {$nbOfItems};
 EOD;
+        $query = $em->createNativeQuery($query, $rsm);
 
-        return $em->createNativeQuery($query, $rsm)->getResult();
+        if ($item instanceof AbstractPage) {
+            $query->setParameter('deleted', false);
+            $query->setParameter('online', true);
+        }
+
+        return $query->getResult();
     }
 }

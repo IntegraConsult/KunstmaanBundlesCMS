@@ -321,8 +321,18 @@ SQL;
                 '(v.node_id = n.id AND v.lang <> :lang)'
             )
             ->where('n.deleted = :deletedFalse')
-            ->addGroupBy('n.id')
-            ->addOrderBy('t.weight', 'ASC')
+            ->addGroupBy('n.id');
+
+        if ($databasePlatformName=='postgresql'){
+            //@todo this needst to be tested still
+            $qb->addGroupBy('t.url')
+                ->addGroupby('t.id')
+                ->addGroupby('v.weight')
+                ->addGroupBy('v.title');
+
+        }
+
+        $qb->addOrderBy('t.weight', 'ASC')
             ->addOrderBy('t.title', 'ASC');
 
         if (!$includeHiddenFromNav) {

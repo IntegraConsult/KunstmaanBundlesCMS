@@ -14,6 +14,9 @@ class Repo extends AbstractArticleOverviewPageRepository
 {
 }
 
+/**
+ * Class AbstractArticleOverviewPageRepositoryTest
+ */
 class AbstractArticleOverviewPageRepositoryTest extends TestCase
 {
     public function testFindActiveOverviewPages()
@@ -27,7 +30,7 @@ class AbstractArticleOverviewPageRepositoryTest extends TestCase
         $qb->expects($this->once())->method('from')->willReturn($qb);
         $qb->expects($this->once())->method('where')->willReturn($qb);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
-        $qb->expects($this->once())->method('setParameter')->willReturn($qb);
+        $qb->expects($this->exactly(2))->method('setParameter')->willReturn($qb);
         $qb->expects($this->once())->method('getQuery')->willReturn($query);
 
         $em = $this->createMock(EntityManager::class);
