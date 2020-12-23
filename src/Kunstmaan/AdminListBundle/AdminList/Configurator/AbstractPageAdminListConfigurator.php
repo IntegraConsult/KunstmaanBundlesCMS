@@ -37,7 +37,10 @@ abstract class AbstractPageAdminListConfigurator extends AbstractDoctrineDBALAdm
     private $nodeTranslationIds = [];
 
     /**
-     * @param string $locale
+     * AbstractPageAdminListConfigurator constructor.
+     *
+     * @param EntityManagerInterface $em
+     * @param string                 $locale
      */
     public function __construct(EntityManagerInterface $em, $locale)
     {
@@ -103,6 +106,10 @@ abstract class AbstractPageAdminListConfigurator extends AbstractDoctrineDBALAdm
         return $this->em->getClassMetadata($this->getRepositoryName())->getName();
     }
 
+    /**
+     * @param QueryBuilder $queryBuilder
+     * @param array        $params
+     */
     public function adaptQueryBuilder(QueryBuilder $queryBuilder, array $params = [])
     {
         $qbQuery = clone $queryBuilder;
@@ -111,7 +118,8 @@ abstract class AbstractPageAdminListConfigurator extends AbstractDoctrineDBALAdm
             ->select('b.id, b.node_id')
             ->from('kuma_node_translations', 'b')
             ->innerJoin('b', 'kuma_nodes', 'n', 'b.node_id = n.id')
-            ->where('n.deleted = 0')
+            ->where('n.deleted = :deletedFalse')
+            ->setParameter('deletedFalse',false)
             ->andWhere('n.ref_entity_name = :class')
             ->setParameter('class', $this->getPageClass())
             ->addOrderBy('b.updated', 'DESC');
@@ -133,6 +141,9 @@ abstract class AbstractPageAdminListConfigurator extends AbstractDoctrineDBALAdm
             ->orderBy('b.updated', 'DESC');
     }
 
+    /**
+     * @param QueryBuilder $qb
+     */
     private function getCurrentLocaleResults(QueryBuilder $qb)
     {
         $results = $qb
@@ -147,6 +158,9 @@ abstract class AbstractPageAdminListConfigurator extends AbstractDoctrineDBALAdm
         }
     }
 
+    /**
+     * @param QueryBuilder $qb
+     */
     private function getOtherLocalesResults(QueryBuilder $qb)
     {
         $qb

@@ -40,7 +40,7 @@ abstract class AbstractArticlePageAdminListConfigurator extends AbstractDoctrine
         parent::__construct($em, $aclHelper);
         $this->locale = $locale;
         $this->setPermissionDefinition(
-            new PermissionDefinition([$permission], 'Kunstmaan\NodeBundle\Entity\Node', 'n')
+            new PermissionDefinition(array($permission), 'Kunstmaan\NodeBundle\Entity\Node', 'n')
         );
     }
 
@@ -108,7 +108,8 @@ abstract class AbstractArticlePageAdminListConfigurator extends AbstractDoctrine
         $queryBuilder->innerJoin('b.node', 'n', 'WITH', 'b.node = n.id');
         $queryBuilder->innerJoin('b.nodeVersions', 'nv', 'WITH', 'b.publicNodeVersion = nv.id');
         $queryBuilder->andWhere('b.lang = :lang');
-        $queryBuilder->andWhere('n.deleted = 0');
+        $queryBuilder->andWhere('n.deleted = :deletedFalse');
+        $queryBuilder->setParameter('deletedFalse', false);
         $queryBuilder->andWhere('n.refEntityName = :class');
         $queryBuilder->addOrderBy('b.updated', 'DESC');
         $queryBuilder->setParameter('lang', $this->locale);
@@ -124,10 +125,10 @@ abstract class AbstractArticlePageAdminListConfigurator extends AbstractDoctrine
         /* @var Node $node */
         $node = $item->getNode();
 
-        return [
+        return array(
             'path' => 'KunstmaanNodeBundle_nodes_edit',
-            'params' => ['id' => $node->getId()],
-        ];
+            'params' => array('id' => $node->getId()),
+        );
     }
 
     /**
@@ -142,10 +143,10 @@ abstract class AbstractArticlePageAdminListConfigurator extends AbstractDoctrine
         /* @var Node $node */
         $node = $item->getNode();
 
-        return [
+        return array(
             'path' => 'KunstmaanNodeBundle_nodes_delete',
-            'params' => ['id' => $node->getId()],
-        ];
+            'params' => array('id' => $node->getId()),
+        );
     }
 
     /**
