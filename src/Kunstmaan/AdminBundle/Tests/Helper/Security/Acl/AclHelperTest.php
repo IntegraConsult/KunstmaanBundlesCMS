@@ -56,6 +56,10 @@ class AclHelperTest extends TestCase
      */
     protected $object;
 
+    /**
+     * Sets up the fixture, for example, opens a network connection.
+     * This method is called before a test is executed.
+     */
     protected function setUp(): void
     {
         $this->em = $this->getMockBuilder('Doctrine\ORM\EntityManager')
@@ -72,7 +76,10 @@ class AclHelperTest extends TestCase
             ->will($this->returnValue('myDatabase'));
 
         /* @var $platform AbstractPlatform */
-        $platform = $this->getMockForAbstractClass('Doctrine\DBAL\Platforms\AbstractPlatform');
+        $platform = $this->createMock(AbstractPlatform::class);
+        $platform->expects($this->any())
+            ->method('getStringLiteralQuoteCharacter')
+            ->willReturn($this->returnValue('#'));
 
         $conn->expects($this->any())
             ->method('getDatabasePlatform')
@@ -109,7 +116,7 @@ class AclHelperTest extends TestCase
 
         $conf->expects($this->any())
             ->method('getDefaultQueryHints')
-            ->willReturn([]);
+            ->willReturn(array());
 
         $conf->expects($this->any())
             ->method('isSecondLevelCacheEnabled')
@@ -159,11 +166,11 @@ class AclHelperTest extends TestCase
 
         $queryBuilder->expects($this->once())
             ->method('getRootEntities')
-            ->will($this->returnValue(['Kunstmaan\NodeBundle\Entity\Node']));
+            ->will($this->returnValue(array('Kunstmaan\NodeBundle\Entity\Node')));
 
         $queryBuilder->expects($this->once())
             ->method('getRootAliases')
-            ->will($this->returnValue(['n']));
+            ->will($this->returnValue(array('n')));
 
         $user = $this->getMockBuilder('FOS\UserBundle\Model\UserInterface')
             ->getMock();
@@ -187,7 +194,7 @@ class AclHelperTest extends TestCase
             ->with($roles)
             ->will($this->returnValue($allRoles));
 
-        $permissionDef = new PermissionDefinition(['view'], 'Kunstmaan\NodeBundle\Entity\Node');
+        $permissionDef = new PermissionDefinition(array('view'), 'Kunstmaan\NodeBundle\Entity\Node');
 
         /* @var $query Query */
         $query = $this->object->apply($queryBuilder, $permissionDef);
@@ -198,9 +205,9 @@ class AclHelperTest extends TestCase
         $this->assertEquals('n', $query->getHint('acl.entityRootTableDqlAlias'));
 
         $aclQuery = $query->getHint('acl.extra.query');
-        $this->assertStringContainsString('"ROLE_SUBJECT"', $aclQuery);
-        $this->assertStringContainsString('"ROLE_KING"', $aclQuery);
-        $this->assertStringContainsString('"IS_AUTHENTICATED_ANONYMOUSLY"', $aclQuery);
+        $this->assertStringContainsString('#ROLE_SUBJECT#', $aclQuery);
+        $this->assertStringContainsString('#ROLE_KING#', $aclQuery);
+        $this->assertStringContainsString('#IS_AUTHENTICATED_ANONYMOUSLY#', $aclQuery);
         $this->assertStringContainsString('MyUser', $aclQuery);
     }
 
@@ -219,11 +226,11 @@ class AclHelperTest extends TestCase
 
         $queryBuilder->expects($this->once())
             ->method('getRootEntities')
-            ->will($this->returnValue(['Kunstmaan\NodeBundle\Entity\Node']));
+            ->will($this->returnValue(array('Kunstmaan\NodeBundle\Entity\Node')));
 
         $queryBuilder->expects($this->once())
             ->method('getRootAliases')
-            ->will($this->returnValue(['n']));
+            ->will($this->returnValue(array('n')));
 
         [$rolesMethodName, $roles, $reachableRolesMethodName, $allRoles,] = $this->getRoleMockData(true);
 
@@ -240,7 +247,7 @@ class AclHelperTest extends TestCase
             ->method('getUser')
             ->will($this->returnValue('anon.'));
 
-        $permissionDef = new PermissionDefinition(['view'], 'Kunstmaan\NodeBundle\Entity\Node');
+        $permissionDef = new PermissionDefinition(array('view'), 'Kunstmaan\NodeBundle\Entity\Node');
 
         /* @var $query Query */
         $query = $this->object->apply($queryBuilder, $permissionDef);
@@ -251,7 +258,7 @@ class AclHelperTest extends TestCase
         $this->assertEquals('n', $query->getHint('acl.entityRootTableDqlAlias'));
 
         $aclQuery = $query->getHint('acl.extra.query');
-        $this->assertStringContainsString('"IS_AUTHENTICATED_ANONYMOUSLY"', $aclQuery);
+        $this->assertStringContainsString('#IS_AUTHENTICATED_ANONYMOUSLY#', $aclQuery);
     }
 
     public function testGetAllowedEntityIds()
@@ -282,18 +289,18 @@ class AclHelperTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $rows = [
-            ['id' => 1],
-            ['id' => 9],
-        ];
+        $rows = array(
+            array('id' => 1),
+            array('id' => 9),
+        );
 
         $hydrator->expects($this->once())
             ->method('hydrateAll')
             ->will($this->returnValue($rows));
 
         $this->em->expects($this->any())
-          ->method('newHydrator') // was ->method('getHydrator')
-          ->will($this->returnValue($hydrator));
+            ->method('newHydrator') // was ->method('getHydrator')
+            ->will($this->returnValue($hydrator));
 
         /* @var $query NativeQuery */
         $query = new NativeQuery($this->em);
@@ -302,19 +309,19 @@ class AclHelperTest extends TestCase
             ->method('createNativeQuery')
             ->will($this->returnValue($query));
 
-        $permissionDef = new PermissionDefinition(['view'], 'Kunstmaan\NodeBundle\Entity\Node', 'n');
+        $permissionDef = new PermissionDefinition(array('view'), 'Kunstmaan\NodeBundle\Entity\Node', 'n');
 
         /* @var $result array */
         $result = $this->object->getAllowedEntityIds($permissionDef);
 
-        $this->assertEquals([1, 9], $result);
+        $this->assertEquals(array(1, 9), $result);
     }
 
     public function testGetAllowedEntityIdsNoEntity()
     {
         $this->expectException('InvalidArgumentException');
 
-        $this->object->getAllowedEntityIds(new PermissionDefinition(['view']));
+        $this->object->getAllowedEntityIds(new PermissionDefinition(array('view')));
     }
 
     public function testGetTokenStorage()

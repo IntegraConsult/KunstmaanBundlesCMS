@@ -55,6 +55,10 @@ class AclNativeHelperTest extends TestCase
      */
     protected $object;
 
+    /**
+     * Sets up the fixture, for example, opens a network connection.
+     * This method is called before a test is executed.
+     */
     protected function setUp(): void
     {
         $this->em = $this->getMockBuilder('Doctrine\ORM\EntityManager')
@@ -70,7 +74,10 @@ class AclNativeHelperTest extends TestCase
             ->will($this->returnValue('myDatabase'));
 
         /* @var $platform AbstractPlatform */
-        $platform = $this->getMockForAbstractClass('Doctrine\DBAL\Platforms\AbstractPlatform');
+        $platform = $this->createMock(AbstractPlatform::class);
+        $platform->expects($this->any())
+            ->method('getStringLiteralQuoteCharacter')
+            ->willReturn($this->returnValue('#'));
 
         $this->conn->expects($this->any())
             ->method('getDatabasePlatform')
@@ -111,12 +118,12 @@ class AclNativeHelperTest extends TestCase
         $queryBuilder = new QueryBuilder($this->conn);
         $queryBuilder->add(
             'from',
-            [
-                [
+            array(
+                array(
                     'table' => 'myTable',
                     'alias' => 'n',
-                ],
-            ]
+                ),
+            )
         );
 
         [$rolesMethodName, $roles, $reachableRolesMethodName, $allRoles,] = $this->getRoleMockData();
@@ -141,15 +148,15 @@ class AclNativeHelperTest extends TestCase
             ->method('getUser')
             ->will($this->returnValue($user));
 
-        $permissionDef = new PermissionDefinition(['view'], 'Kunstmaan\NodeBundle\Entity\Node', 'n');
+        $permissionDef = new PermissionDefinition(array('view'), 'Kunstmaan\NodeBundle\Entity\Node', 'n');
 
         /* @var $qb QueryBuilder */
         $qb = $this->object->apply($queryBuilder, $permissionDef);
         $query = $qb->getSQL();
 
-        $this->assertStringContainsString('"ROLE_SUBJECT"', $query);
-        $this->assertStringContainsString('"ROLE_KING"', $query);
-        $this->assertStringContainsString('"IS_AUTHENTICATED_ANONYMOUSLY"', $query);
+        $this->assertStringContainsString('#ROLE_SUBJECT#', $query);
+        $this->assertStringContainsString('#ROLE_KING#', $query);
+        $this->assertStringContainsString('#IS_AUTHENTICATED_ANONYMOUSLY#', $query);
         $this->assertStringContainsString('MyUser', $query);
     }
 
@@ -158,12 +165,12 @@ class AclNativeHelperTest extends TestCase
         $queryBuilder = new QueryBuilder($this->conn);
         $queryBuilder->add(
             'from',
-            [
-                [
+            array(
+                array(
                     'table' => 'myTable',
                     'alias' => 'n',
-                ],
-            ]
+                ),
+            )
         );
 
         [$rolesMethodName, $roles, $reachableRolesMethodName, $allRoles,] = $this->getRoleMockData(true);
@@ -181,13 +188,13 @@ class AclNativeHelperTest extends TestCase
             ->method('getUser')
             ->will($this->returnValue('anon.'));
 
-        $permissionDef = new PermissionDefinition(['view'], 'Kunstmaan\NodeBundle\Entity\Node', 'n');
+        $permissionDef = new PermissionDefinition(array('view'), 'Kunstmaan\NodeBundle\Entity\Node', 'n');
 
         /* @var $qb QueryBuilder */
         $qb = $this->object->apply($queryBuilder, $permissionDef);
         $query = $qb->getSQL();
 
-        $this->assertStringContainsString('"IS_AUTHENTICATED_ANONYMOUSLY"', $query);
+        $this->assertStringContainsString('#IS_AUTHENTICATED_ANONYMOUSLY#', $query);
     }
 
     public function testGetTokenStorage()

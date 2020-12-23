@@ -38,6 +38,8 @@ class AclNativeHelper
     private $permissionsEnabled;
 
     /**
+     * Constructor.
+     *
      * @param EntityManager          $em           The entity manager
      * @param TokenStorageInterface  $tokenStorage The security context
      * @param RoleHierarchyInterface $rh           The role hierarchies
@@ -65,14 +67,14 @@ class AclNativeHelper
         }
 
         $aclConnection = $this->em->getConnection();
+        $stringQuoteChar = $aclConnection->getDatabasePlatform()->getStringLiteralQuoteCharacter();
 
-        $databasePrefix = is_file($aclConnection->getDatabase()) ? '' : $aclConnection->getDatabase() . '.';
         $rootEntity = $permissionDef->getEntity();
         $linkAlias = $permissionDef->getAlias();
         // Only tables with a single ID PK are currently supported
         $linkField = $this->em->getClassMetadata($rootEntity)->getSingleIdentifierColumnName();
 
-        $rootEntity = '"' . str_replace('\\', '\\\\', $rootEntity) . '"';
+        $rootEntity = $stringQuoteChar . $rootEntity . $stringQuoteChar;
         $query = $queryBuilder;
 
         $builder = new MaskBuilder();
@@ -84,7 +86,7 @@ class AclNativeHelper
 
         /* @var $token TokenInterface */
         $token = $this->tokenStorage->getToken();
-        $userRoles = [];
+        $userRoles = array();
         $user = null;
         if (!\is_null($token)) {
             $user = $token->getUser();
@@ -97,18 +99,18 @@ class AclNativeHelper
         }
 
         // Security context does not provide anonymous role automatically.
-        $uR = ['"IS_AUTHENTICATED_ANONYMOUSLY"'];
+        $uR = array($stringQuoteChar . 'IS_AUTHENTICATED_ANONYMOUSLY' . $stringQuoteChar);
 
         foreach ($userRoles as $role) {
             // The reason we ignore this is because by default FOSUserBundle adds ROLE_USER for every user
             if (is_string($role)) {
                 if ($role !== 'ROLE_USER') {
-                    $uR[] = '"' . $role . '"';
+                    $uR[] = $stringQuoteChar . $role . $stringQuoteChar;
                 }
             } else {
                 // Symfony 3.4 compatibility
                 if ($role->getRole() !== 'ROLE_USER') {
-                    $uR[] = '"' . $role->getRole() . '"';
+                    $uR[] = $stringQuoteChar . $role->getRole() . $stringQuoteChar;
                 }
             }
         }
@@ -116,21 +118,22 @@ class AclNativeHelper
         $inString = implode(' OR s.identifier = ', $uR);
 
         if (\is_object($user)) {
-            $inString .= ' OR s.identifier = "' . str_replace(
-                '\\',
-                '\\\\',
-                \get_class($user)
-            ) . '-' . $user->getUserName() . '"';
+            $inString .= ' OR s.identifier = ' . $stringQuoteChar . \get_class($user) . '-' . $user->getUserName() . $stringQuoteChar;
+        }
+
+        $objectIdentifierColumn = 'o.object_identifier';
+        if ($aclConnection->getDatabasePlatform()->getName() === 'postgresql') {
+            $objectIdentifierColumn = 'o.object_identifier::BIGINT';
         }
 
         $joinTableQuery = <<<SELECTQUERY
-SELECT DISTINCT o.object_identifier as id FROM {$databasePrefix}acl_object_identities as o
-INNER JOIN {$databasePrefix}acl_classes c ON c.id = o.class_id
-LEFT JOIN {$databasePrefix}acl_entries e ON (
+SELECT DISTINCT {$objectIdentifierColumn} as id FROM acl_object_identities as o
+INNER JOIN acl_classes c ON c.id = o.class_id
+LEFT JOIN acl_entries e ON (
     e.class_id = o.class_id AND (e.object_identity_id = o.id
     OR {$aclConnection->getDatabasePlatform()->getIsNullExpression('e.object_identity_id')})
 )
-LEFT JOIN {$databasePrefix}acl_security_identities s ON (
+LEFT JOIN acl_security_identities s ON (
 s.id = e.security_identity_id
 )
 WHERE c.class_type = {$rootEntity}
