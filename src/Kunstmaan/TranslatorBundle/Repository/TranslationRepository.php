@@ -62,9 +62,10 @@ class TranslationRepository extends AbstractTranslatorRepository
         $flagNew = \Kunstmaan\TranslatorBundle\Entity\Translation::FLAG_NEW;
         $flagUpdated = \Kunstmaan\TranslatorBundle\Entity\Translation::FLAG_UPDATED;
 
+        //use lowercase variable names for postgress. i.e. : newest_date instead of newestDate
         $sql = <<<EOQ
 SELECT
-    MAX(compare) as newestDate,
+    MAX(compare) as newest_date,
     flag
 FROM (
     SELECT created_at as compare, flag FROM %s
@@ -74,7 +75,7 @@ WHERE
     flag IN ('{$flagUpdated}','{$flagNew}')
     GROUP BY flag
     HAVING MAX(compare) IS NOT NULL
-    ORDER BY newestDate DESC
+    ORDER BY newest_date DESC
 EOQ;
         $table = $em->getClassMetadata('KunstmaanTranslatorBundle:Translation')->getTableName();
 
@@ -83,7 +84,7 @@ EOQ;
         $result = $stmt->fetch();
 
         if (\is_array($result) && \count($result) > 0) {
-            return new \DateTime($result['newestDate']);
+            return new \DateTime($result['newest_date']);
         }
 
         return null;
@@ -157,6 +158,8 @@ EOQ;
     }
 
     /**
+     * @param TranslationModel $translationModel
+     *
      * @return bool
      */
     public function isUnique(TranslationModel $translationModel)
@@ -173,6 +176,9 @@ EOQ;
         return $count == 0;
     }
 
+    /**
+     * @param TranslationModel $translationModel
+     */
     public function createTranslations(TranslationModel $translationModel)
     {
         $this->getEntityManager()->beginTransaction();
@@ -205,7 +211,8 @@ EOQ;
     }
 
     /**
-     * @param $translationId
+     * @param TranslationModel $translationModel
+     * @param                  $translationId
      */
     public function updateTranslations(TranslationModel $translationModel, $translationId)
     {
@@ -277,7 +284,8 @@ EOQ;
     }
 
     /**
-     * @param string $domain
+     * @param DateTime $date
+     * @param string   $domain
      *
      * @return mixed
      */
