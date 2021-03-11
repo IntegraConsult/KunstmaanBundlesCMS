@@ -204,7 +204,7 @@ class NodeRepository extends NestedTreeRepository
         $em = $this->getEntityManager();
         $node = new Node();
         $node->setRef($hasNode);
-        if (!$hasNode->getId() > 0) {
+        if (!($hasNode->getId() > 0)) {
             throw new \InvalidArgumentException('the entity of class '. $node->getRefEntityName().' has no id, maybe you forgot to flush first');
         }
         $node->setDeleted(false);
@@ -328,11 +328,12 @@ SQL;
             $qb->addGroupBy('t.url')
                 ->addGroupby('t.id')
                 ->addGroupby('v.weight')
-                ->addGroupBy('v.title');
+                ->addGroupBy('v.title')
+                ->distinct();
         }
 
-        $qb->addOrderBy('t.weight', 'ASC')
-            ->addOrderBy('t.title', 'ASC');
+        $qb->addOrderBy('weight', 'ASC')
+            ->addOrderBy('title', 'ASC');
 
         if (!$includeHiddenFromNav) {
             $qb->andWhere('n.hidden_from_nav != :hiddenFromNavFalse');
@@ -359,14 +360,6 @@ SQL;
             $stmt->bindValue(':right', $rootNode->getRight());
         }
         $stmt->execute();
-        if ($databasePlatformName=='postgresql'){
-            $results=$stmt->fetchAll();
-            $uniqueResults=[];
-            foreach ($results as $result){
-                $uniqueResults[$result['id']]=$result;
-            }
-           return $uniqueResults;
-        }
         return $stmt->fetchAll();
     }
 
